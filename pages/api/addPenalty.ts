@@ -1,6 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
-import axios from 'axios';
 
 async function addPenalty(req: VercelRequest, res: VercelResponse) {
   try {
