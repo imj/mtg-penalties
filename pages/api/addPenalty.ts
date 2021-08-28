@@ -18,7 +18,7 @@ async function addPenalty(req: VercelRequest, res: VercelResponse) {
     description,
   } = req.body.values;
 
-  if (!round || !table || !judge || !playerId || !infraction || !penalty) {
+  if (!round || !table || !judge || !infraction || !penalty) {
     return res.status(422).json({ status: 422, error: 'Missing infos.' });
   }
 

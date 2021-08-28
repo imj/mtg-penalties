@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import useSWR from 'swr';
 import * as Yup from 'yup';
+import { orderBy, omit } from 'lodash';
 import TextField from '../components/form/TextField/TextField';
 
 interface DataRow {
@@ -34,23 +35,33 @@ interface DataRow {
   Descrizione: string;
 }
 
+type Penalty = Omit<DataRow, 'ID Giocatore'>;
+
 const fetcher = (url: string) =>
   axios.get<{ rows: DataRow[] }>(url).then((res) => res.data);
 
 const Home: NextPage = () => {
-  const { data } = useSWR('/api/getPenalties', fetcher);
-  const [currentPlayerId, setCurrentPlayerId] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const { data, mutate } = useSWR('/api/getPenalties', fetcher, {
+    refreshInterval: 1000,
+  });
+  // const [currentPlayerId, setCurrentPlayerId] = useState('');
+  // const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogData, setDialogData] = useState<Penalty | null>(null);
 
-  const playerPenalties = useMemo(
-    () =>
-      data?.rows.filter((row) => row['ID Giocatore'] === currentPlayerId) ?? [],
-    [currentPlayerId, data?.rows],
-  );
+  // const playerPenalties = useMemo(
+  //   () =>
+  //     data?.rows.filter((row) => row['ID Giocatore'] === currentPlayerId) ?? [],
+  //   [currentPlayerId, data?.rows],
+  // );
 
-  useEffect(() => {
-    if (playerPenalties.length > 0) setDialogOpen(true);
-  }, [playerPenalties]);
+  // useEffect(() => {
+  //   if (playerPenalties.length > 0) setDialogOpen(true);
+  // }, [playerPenalties]);
+
+  const penalties: Penalty[] = useMemo(() => {
+    const noId = data?.rows.map((row) => omit(row, 'ID Giocatore')) ?? [];
+    return orderBy(noId, ['Nome completo'], ['asc']);
+  }, [data?.rows]);
 
   return (
     <Container fixed>
@@ -88,8 +99,9 @@ const Home: NextPage = () => {
               );
               if (res.status === 200) {
                 toast.success('Penalità inserita');
+                mutate();
                 helpers.resetForm();
-                setCurrentPlayerId('');
+                // setCurrentPlayerId('');
               } else {
                 console.error(res.data.error);
                 toast.error("Errore durante l'inserimento della penalità");
@@ -109,9 +121,9 @@ const Home: NextPage = () => {
               'Il numero del tavolo è obbligatorio.',
             ),
             judge: Yup.string().required('Inserisci il tuo nome.'),
-            playerId: Yup.string().required(
-              'Inserisci numero DCI o un altro ID.',
-            ),
+            // playerId: Yup.string().required(
+            //   'Inserisci numero DCI o un altro ID.',
+            // ),
             infraction: Yup.string().required("Inserisci l'infrazione."),
             penalty: Yup.string().required('Inserisci la penalità.'),
           })}
@@ -144,7 +156,7 @@ const Home: NextPage = () => {
                     required={true}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                {/* <Grid item xs={12}>
                   <TextField
                     id="playerId"
                     name="playerId"
@@ -154,7 +166,7 @@ const Home: NextPage = () => {
                       setCurrentPlayerId(e.target.value);
                     }}
                   />
-                </Grid>
+                </Grid> */}
                 <Grid item xs={12}>
                   <TextField
                     id="playerName"
@@ -200,30 +212,27 @@ const Home: NextPage = () => {
             </Form>
           )}
         </Formik>
-        <Dialog onClose={() => setDialogOpen(false)} open={dialogOpen}>
-          <DialogTitle>Attenzione</DialogTitle>
-          <Box p={3}>
-            Il giocatore indicato ha già ricevuto altre penalità oggi. Scorri la
-            pagina fino in fondo per vederle.
-          </Box>
-        </Dialog>
-        {playerPenalties.length > 0 && (
+        {penalties.length > 0 && (
           <Box mb={4}>
-            <h2>Penalità del giocatore</h2>
-            <p>ID: {currentPlayerId}</p>
+            <h2>Penalità ordinate per nome</h2>
             <TableContainer component={Paper}>
-              <Table>
+              <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Turno</TableCell>
+                    <TableCell>Nome</TableCell>
+                    <TableCell padding="none">Turno</TableCell>
                     <TableCell>Infrazione</TableCell>
                     <TableCell>Penalità</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {playerPenalties.map((penalty, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{penalty.Turno}</TableCell>
+                  {penalties.map((penalty, index) => (
+                    <TableRow
+                      key={index}
+                      onClick={() => setDialogData(penalty)}
+                    >
+                      <TableCell>{penalty['Nome completo']}</TableCell>
+                      <TableCell padding="none">{penalty.Turno}</TableCell>
                       <TableCell>{penalty.Infrazione}</TableCell>
                       <TableCell>{penalty['Penalità']}</TableCell>
                     </TableRow>
@@ -232,6 +241,24 @@ const Home: NextPage = () => {
               </Table>
             </TableContainer>
           </Box>
+        )}
+        {dialogData !== null && (
+          <Dialog onClose={() => setDialogData(null)} open={true}>
+            <TableContainer component={Paper}>
+              <Table size="small">
+                <TableBody>
+                  {Object.keys(dialogData).map((key) => (
+                    <TableRow key={key}>
+                      <TableCell component="th" scope="row">
+                        {key}
+                      </TableCell>
+                      <TableCell>{dialogData[key as keyof Penalty]}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Dialog>
         )}
       </main>
     </Container>
