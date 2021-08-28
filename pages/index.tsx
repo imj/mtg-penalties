@@ -89,6 +89,7 @@ const Home: NextPage = () => {
               if (res.status === 200) {
                 toast.success('Penalità inserita');
                 helpers.resetForm();
+                setCurrentPlayerId('');
               } else {
                 console.error(res.data.error);
                 toast.error("Errore durante l'inserimento della penalità");
@@ -101,7 +102,9 @@ const Home: NextPage = () => {
             }
           }}
           validationSchema={Yup.object({
-            round: Yup.number().required('Il numero del turno è obbligatorio.'),
+            round: Yup.number()
+              .min(1)
+              .required('Il numero del turno è obbligatorio.'),
             table: Yup.string().required(
               'Il numero del tavolo è obbligatorio.',
             ),
