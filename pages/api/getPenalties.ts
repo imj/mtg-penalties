@@ -23,7 +23,6 @@ async function getPenalties(req: VercelRequest, res: VercelResponse) {
       .json({ status: 500, error: 'Invalid Google Credentials.' });
   }
 
-  debugger;
   const doc = new GoogleSpreadsheet(SPREADSHEET_ID);
   try {
     await doc.useServiceAccountAuth({

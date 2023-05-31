@@ -11,13 +11,12 @@ import {
   Grid,
   Box,
   Dialog,
-  DialogTitle,
 } from '@material-ui/core';
 import axios from 'axios';
 import { Form, Formik } from 'formik';
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import useSWR from 'swr';
 import * as Yup from 'yup';
@@ -42,7 +41,7 @@ const fetcher = (url: string) =>
 
 const Home: NextPage = () => {
   const { data, mutate } = useSWR('/api/getPenalties', fetcher, {
-    refreshInterval: 1000,
+    refreshInterval: 5000,
   });
   // const [currentPlayerId, setCurrentPlayerId] = useState('');
   // const [dialogOpen, setDialogOpen] = useState(false);
@@ -63,17 +62,20 @@ const Home: NextPage = () => {
     return orderBy(noId, ['Nome completo'], ['asc']);
   }, [data?.rows]);
 
+  const dialogDataKeys: (keyof Penalty)[] =
+    dialogData !== null ? (Object.keys(dialogData) as (keyof Penalty)[]) : [];
+
   return (
     <Container fixed>
       <Head>
-        <title>MTG Penalties</title>
+        <title>Penalties - 4 Season</title>
         <meta name="description" content="Handle penalties for your event" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main>
-        <h1>4 Season Summer 2021</h1>
-        <h2>Penalità</h2>
+        <h1>Penalties - 4 Season</h1>
+        <h2>New penalty</h2>
         <Formik
           initialValues={{
             round: 0,
@@ -98,34 +100,32 @@ const Home: NextPage = () => {
                 },
               );
               if (res.status === 200) {
-                toast.success('Penalità inserita');
+                toast.success('Penalty added');
                 mutate();
                 helpers.resetForm();
                 // setCurrentPlayerId('');
               } else {
                 console.error(res.data.error);
-                toast.error("Errore durante l'inserimento della penalità");
+                toast.error('There was an error adding the penalty');
                 helpers.setSubmitting(false);
               }
             } catch (error) {
               console.error(error);
-              toast.error("Errore durante l'inserimento della penalità");
+              toast.error('There was an error adding the penalty');
               helpers.setSubmitting(false);
             }
           }}
           validationSchema={Yup.object({
             round: Yup.number()
-              .min(1)
-              .required('Il numero del turno è obbligatorio.'),
-            table: Yup.string().required(
-              'Il numero del tavolo è obbligatorio.',
-            ),
-            judge: Yup.string().required('Inserisci il tuo nome.'),
+              .min(1, 'Round must be greater than or equal to 1')
+              .required('Round number is required'),
+            table: Yup.string().required('Table number is required'),
+            judge: Yup.string().required('Insert judge name'),
             // playerId: Yup.string().required(
             //   'Inserisci numero DCI o un altro ID.',
             // ),
-            infraction: Yup.string().required("Inserisci l'infrazione."),
-            penalty: Yup.string().required('Inserisci la penalità.'),
+            infraction: Yup.string().required('Insert infraction'),
+            penalty: Yup.string().required('Insert penalty'),
           })}
         >
           {({ isSubmitting }) => (
@@ -136,7 +136,7 @@ const Home: NextPage = () => {
                     id="round"
                     name="round"
                     type="number"
-                    label="Turno"
+                    label="Round"
                     required={true}
                   />
                 </Grid>
@@ -144,7 +144,7 @@ const Home: NextPage = () => {
                   <TextField
                     id="table"
                     name="table"
-                    label="Tavolo"
+                    label="Table"
                     required={true}
                   />
                 </Grid>
@@ -152,7 +152,7 @@ const Home: NextPage = () => {
                   <TextField
                     id="judge"
                     name="judge"
-                    label="Nome del Judge"
+                    label="Judge name"
                     required={true}
                   />
                 </Grid>
@@ -171,14 +171,14 @@ const Home: NextPage = () => {
                   <TextField
                     id="playerName"
                     name="playerName"
-                    label="Nome del giocatore"
+                    label="Player name"
                   />
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
                     id="infraction"
                     name="infraction"
-                    label="Infrazione"
+                    label="Infraction"
                     required={true}
                   />
                 </Grid>
@@ -186,7 +186,7 @@ const Home: NextPage = () => {
                   <TextField
                     id="penalty"
                     name="penalty"
-                    label="Penalità"
+                    label="Penalty"
                     required={true}
                   />
                 </Grid>
@@ -194,7 +194,7 @@ const Home: NextPage = () => {
                   <TextField
                     id="description"
                     name="description"
-                    label="Descrizione"
+                    label="Description"
                     multiline={true}
                   />
                 </Grid>
@@ -205,7 +205,7 @@ const Home: NextPage = () => {
                     disabled={isSubmitting}
                     type="submit"
                   >
-                    Aggiungi
+                    Submit
                   </Button>
                 </Grid>
               </Grid>
@@ -214,15 +214,15 @@ const Home: NextPage = () => {
         </Formik>
         {penalties.length > 0 && (
           <Box mb={4}>
-            <h2>Penalità ordinate per nome</h2>
+            <h2>Penalties sorted by player name</h2>
             <TableContainer component={Paper}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Nome</TableCell>
-                    <TableCell padding="none">Turno</TableCell>
-                    <TableCell>Infrazione</TableCell>
-                    <TableCell>Penalità</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell padding="none">Round</TableCell>
+                    <TableCell>Infraction</TableCell>
+                    <TableCell>Penalty</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -247,10 +247,10 @@ const Home: NextPage = () => {
             <TableContainer component={Paper}>
               <Table size="small">
                 <TableBody>
-                  {Object.keys(dialogData).map((key) => (
+                  {dialogDataKeys.map((key) => (
                     <TableRow key={key}>
                       <TableCell component="th" scope="row">
-                        {key}
+                        {columnNames[key] ?? key}
                       </TableCell>
                       <TableCell>{dialogData[key as keyof Penalty]}</TableCell>
                     </TableRow>
@@ -266,3 +266,14 @@ const Home: NextPage = () => {
 };
 
 export default Home;
+
+const columnNames: Record<keyof Penalty, string> = {
+  Turno: 'Round',
+  Tavolo: 'Table',
+  Judge: 'Judge',
+  // 'ID Giocatore': 'Player ID',
+  'Nome completo': 'Player name',
+  Infrazione: 'Infraction',
+  Penalità: 'Penalty',
+  Descrizione: 'Description',
+};
